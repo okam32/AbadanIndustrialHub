@@ -1,0 +1,66 @@
+@page "/admin/company/{Id:guid}"
+<PageTitle>بررسی شرکت</PageTitle>
+<h1>بررسی اطلاعات شرکت</h1>
+@if (error.Length > 0) { <p class="notice">@error</p> }
+@if (details != null)
+{
+    <div class="card">
+        <h2>@details.Company.Name</h2>
+        <p><strong>حوزه:</strong> @details.Company.Sector</p>
+        <p><strong>شهر:</strong> @details.Company.City</p>
+        <p><strong>نشانی:</strong> @details.Company.Address</p>
+        <p><strong>شماره تماس:</strong> @details.Company.Phone</p>
+        <p><strong>شناسه ملی:</strong> @details.Company.NationalIdentifier</p>
+        <p>@details.Company.Description</p>
+        <p>درخواست عضویت شهرک صنعتی: @(details.Company.RequestsTownshipVerification ? "بله" : "خیر")</p>
+        <h3>مدارک بارگذاری‌شده</h3>
+        @if (details.Documents.Count == 0) { <p>مدرکی ثبت نشده است.</p> }
+        else { <ul>@foreach (var d in details.Documents) { <li><a href="@($"/api/files/{d.Id}")" target="_blank">@d.OriginalName</a></li> }</ul> }
+        <label class="checkbox-row"><input type="checkbox" disabled="@(!details.Company.RequestsTownshipVerification)" @bind="verifyTownship" /> عضویت شرکت در شهرک صنعتی بررسی و تأیید شده است</label>
+        <label>دلیل رد یا درخواست اصلاح <textarea rows="3" @bind="reason"></textarea></label>
+        <div class="button-row">
+            <button class="btn btn-primary" @onclick="Approve">تأیید و انتشار</button>
+            <button class="btn btn-danger" @onclick="Reject">رد اطلاعات</button>
+            <a class="btn btn-light" href="/admin">بازگشت</a>
+        </div>
+    </div>
+}
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private CompanyReviewResponse? details;
+    private bool verifyTownship;
+    private string reason = "";
+    private string error = "";
+    private sealed class CompanyReviewResponse
+    {
+        public CompanyReview Company { get; set; } = new();
+        public List<Doc> Documents { get; set; } = new();
+    }
+    private sealed class CompanyReview
+    {
+        public string Name { get; set; } = "";
+        public string Sector { get; set; } = "";
+        public string City { get; set; } = "";
+        public string? Address { get; set; }
+        public string? Phone { get; set; }
+        public string? NationalIdentifier { get; set; }
+        public string? Description { get; set; }
+        public bool RequestsTownshipVerification { get; set; }
+    }
+    private sealed class Doc { public Guid Id { get; set; } public string OriginalName { get; set; } = ""; }
+    protected override async Task OnParametersSetAsync()
+    {
+        try { details = await Api.Get<CompanyReviewResponse>($"api/admin/companies/{Id}/review"); }
+        catch (Exception ex) { error = ex.Message; }
+    }
+    private async Task Approve()
+    {
+        try { error = await Api.Post($"api/admin/companies/{Id}/approve", new ApprovalDecision { VerifyTownship = verifyTownship }); }
+        catch (Exception ex) { error = ex.Message; }
+    }
+    private async Task Reject()
+    {
+        try { error = await Api.Post($"api/admin/companies/{Id}/reject", new ApprovalDecision { Reason = reason }); }
+        catch (Exception ex) { error = ex.Message; }
+    }
+}

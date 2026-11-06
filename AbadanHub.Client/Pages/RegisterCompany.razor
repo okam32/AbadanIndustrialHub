@@ -1,0 +1,30 @@
+@page "/register-company"
+<PageTitle>ثبت شرکت</PageTitle>
+<div class="form-page">
+    <h1>ثبت‌نام شرکت</h1>
+    <p class="muted">ثبت‌نام برای تمام شرکت‌ها آزاد است. درخواست تأیید عضویت در شهرک صنعتی، پس از بررسی مدیریت پذیرفته می‌شود.</p>
+    <div class="card">
+        <div class="form-grid">
+            <label>نام شرکت <input @bind="form.CompanyName" maxlength="180" /></label>
+            <label>نام مدیر یا نماینده <input @bind="form.ManagerName" maxlength="110" /></label>
+            <label>حوزه فعالیت <input @bind="form.Sector" placeholder="مثلاً تعمیرات تجهیزات صنعتی" /></label>
+            <label>ایمیل <input type="email" @bind="form.Email" /></label>
+            <label>رمز عبور (حداقل ۱۰ نویسه و یک نماد) <input type="password" @bind="form.Password" /></label>
+            <label class="checkbox-row"><input type="checkbox" @bind="form.RequestsTownshipVerification" /> شرکت در شهرک صنعتی آبادان مستقر است و درخواست تأیید دارم</label>
+        </div>
+        <button class="btn btn-primary" disabled="@busy" @onclick="Submit">ثبت‌نام</button>
+        @if (message.Length > 0) { <p class="notice">@message</p> }
+    </div>
+</div>
+@code {
+    private CompanyRegistration form = new();
+    private string message = "";
+    private bool busy;
+    private async Task Submit()
+    {
+        busy = true;
+        try { message = await Api.Post("api/auth/register-company", form) + " اکنون می‌توانید وارد شوید."; }
+        catch (Exception e) { message = e.Message; }
+        finally { busy = false; }
+    }
+}

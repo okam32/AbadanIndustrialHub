@@ -1,0 +1,28 @@
+@page "/register-specialist"
+<PageTitle>ثبت متخصص</PageTitle>
+<div class="form-page">
+    <h1>ثبت‌نام متخصص</h1>
+    <p class="muted">رزومه و مهارت‌های خود را ثبت کنید تا شرکت‌های صنعتی امکان شناسایی توانمندی‌های شما را داشته باشند.</p>
+    <div class="card">
+        <div class="form-grid">
+            <label>نام و نام خانوادگی <input @bind="form.FullName" /></label>
+            <label>شهر <select @bind="form.City"><option>آبادان</option><option>خرمشهر</option><option>سایر</option></select></label>
+            <label>ایمیل <input type="email" @bind="form.Email" /></label>
+            <label>رمز عبور (حداقل ۱۰ نویسه و یک نماد) <input type="password" @bind="form.Password" /></label>
+        </div>
+        <button class="btn btn-primary" disabled="@busy" @onclick="Submit">ثبت‌نام</button>
+        @if (message.Length > 0) { <p class="notice">@message</p> }
+    </div>
+</div>
+@code {
+    private SpecialistRegistration form = new();
+    private string message = "";
+    private bool busy;
+    private async Task Submit()
+    {
+        busy = true;
+        try { message = await Api.Post("api/auth/register-specialist", form) + " برای تکمیل رزومه وارد شوید."; }
+        catch (Exception e) { message = e.Message; }
+        finally { busy = false; }
+    }
+}

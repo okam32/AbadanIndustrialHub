@@ -1,0 +1,30 @@
+@page "/issues"
+<PageTitle>پیگیری مشکلات صنعتی</PageTitle>
+<h1>گزارش‌های مشکلات صنعتی</h1>
+<p class="muted">مشکلات فقط برای شرکت ثبت‌کننده، مدیران و نهادهای دریافت‌کننده پرونده قابل مشاهده هستند.</p>
+@if (message.Length > 0) { <p class="notice">@message</p> }
+@if (rows == null) { <p>در حال بررسی دسترسی...</p> }
+else if (rows.Count == 0) { <p>گزارشی برای شما ثبت نشده است.</p> }
+else
+{
+    <div class="cards two">
+        @foreach (var r in rows)
+        {
+            <article class="card">
+                <div class="title-row"><h3>@r.Title</h3><span class="tag">@r.Status</span></div>
+                <p>@r.CompanyName · @r.Category · اولویت: @r.Priority</p>
+                <p>@r.Description</p>
+                <a href="@($"/issue/{r.Id}")">مشاهده پرونده و ثبت پیگیری</a>
+            </article>
+        }
+    </div>
+}
+@code {
+    private List<IssueView>? rows;
+    private string message = "";
+    protected override async Task OnInitializedAsync()
+    {
+        try { rows = await Api.Get<List<IssueView>>("api/issues"); }
+        catch (Exception e) { message = e.Message; rows = new(); }
+    }
+}

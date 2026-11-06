@@ -1,0 +1,30 @@
+@page "/jobs"
+<PageTitle>فرصت‌های شغلی</PageTitle>
+<h1>فرصت‌های شغلی</h1>
+<p class="muted">برای ارسال درخواست باید با حساب متخصص وارد شده باشید.</p>
+@if (notice.Length > 0) { <p class="notice">@notice</p> }
+@if (items == null) { <p>در حال دریافت...</p> }
+else if (items.Count == 0) { <p>فرصت شغلی فعالی ثبت نشده است.</p> }
+else
+{
+    <div class="cards two">
+        @foreach (var j in items)
+        {
+            <article class="card"><h3>@j.Title</h3><p><strong>@j.CompanyName</strong></p><p>@j.Description</p><p>مهارت موردنیاز: @j.RequiredSkills</p><button class="btn btn-primary btn-small" @onclick="() => Apply(j.Id)">ارسال درخواست</button></article>
+        }
+    </div>
+}
+@code {
+    private List<JobView>? items;
+    private string notice = "";
+    protected override async Task OnInitializedAsync()
+    {
+        try { items = await Api.Get<List<JobView>>("api/jobs"); }
+        catch (Exception ex) { notice = ex.Message; items = new(); }
+    }
+    private async Task Apply(Guid id)
+    {
+        try { notice = await Api.Post($"api/jobs/{id}/apply"); }
+        catch (Exception ex) { notice = ex.Message; }
+    }
+}

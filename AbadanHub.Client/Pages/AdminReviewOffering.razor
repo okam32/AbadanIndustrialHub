@@ -1,0 +1,44 @@
+@page "/admin/offering/{Id:guid}"
+<PageTitle>بررسی خدمت یا محصول</PageTitle>
+<h1>بررسی خدمت یا محصول</h1>
+@if (error.Length > 0) { <p class="notice">@error</p> }
+@if (item != null)
+{
+    <div class="card form-section">
+        <h2>@item.Title</h2><p>شرکت: @item.CompanyName</p><p>نوع: @item.Kind</p><p>@item.Description</p>
+        <label>دلیل رد <textarea rows="3" @bind="reason"></textarea></label>
+        <div class="button-row">
+            <button class="btn btn-primary" @onclick="Approve">تأیید</button>
+            <button class="btn btn-danger" @onclick="Reject">رد</button>
+            <a class="btn btn-light" href="/admin">بازگشت</a>
+        </div>
+    </div>
+}
+@code {
+    [Parameter] public Guid Id { get; set; }
+    private OfferingReview? item;
+    private string reason = "";
+    private string error = "";
+    private sealed class OfferingReview
+    {
+        public string Title { get; set; } = "";
+        public string CompanyName { get; set; } = "";
+        public string Description { get; set; } = "";
+        public OfferingKind Kind { get; set; }
+    }
+    protected override async Task OnParametersSetAsync()
+    {
+        try { item = await Api.Get<OfferingReview>($"api/admin/offerings/{Id}/review"); }
+        catch (Exception ex) { error = ex.Message; }
+    }
+    private async Task Approve()
+    {
+        try { error = await Api.Post($"api/admin/offerings/{Id}/approve"); }
+        catch (Exception ex) { error = ex.Message; }
+    }
+    private async Task Reject()
+    {
+        try { error = await Api.Post($"api/admin/offerings/{Id}/reject", new ApprovalDecision { Reason = reason }); }
+        catch (Exception ex) { error = ex.Message; }
+    }
+}

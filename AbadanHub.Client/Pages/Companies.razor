@@ -1,0 +1,34 @@
+@page "/companies"
+<PageTitle>شرکت‌های صنعتی</PageTitle>
+<h1>فهرست شرکت‌ها</h1>
+<p class="muted">شرکت‌های تأییدشده شهرک صنعتی آبادان در ابتدای فهرست نمایش داده می‌شوند.</p>
+<div class="search-row"><input placeholder="نام شرکت یا حوزه فعالیت" @bind="search" /><button class="btn btn-primary" @onclick="Load">جستجو</button></div>
+@if (error.Length > 0) { <p class="notice">@error</p> }
+@if (items == null) { <p>در حال دریافت...</p> }
+else if (items.Count == 0) { <p>شرکتی با این شرایط یافت نشد.</p> }
+else
+{
+    <div class="cards two">
+        @foreach (var c in items)
+        {
+            <article class="card">
+                <div class="title-row"><h3>@c.Name</h3>@if (c.IsTownshipVerified) { <span class="tag verified">✓ تأیید شهرک صنعتی</span> }</div>
+                <p><strong>حوزه:</strong> @c.Sector · <strong>شهر:</strong> @c.City</p>
+                <p>@c.Description</p>
+                @if (!string.IsNullOrWhiteSpace(c.Phone)) { <p>تماس: @c.Phone</p> }
+                <a href="@($"/offerings/{c.Id}")">مشاهده محصولات و خدمات</a>
+            </article>
+        }
+    </div>
+}
+@code {
+    private List<CompanySummary>? items;
+    private string search = "";
+    private string error = "";
+    protected override async Task OnInitializedAsync() => await Load();
+    private async Task Load()
+    {
+        try { error = ""; items = await Api.Get<List<CompanySummary>>("api/companies?search=" + Uri.EscapeDataString(search)); }
+        catch (Exception ex) { error = ex.Message; items = new(); }
+    }
+}

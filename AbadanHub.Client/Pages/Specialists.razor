@@ -1,0 +1,29 @@
+@page "/specialists"
+<PageTitle>بانک متخصصان</PageTitle>
+<h1>بانک متخصصان</h1>
+<div class="search-row"><input placeholder="جستجوی مهارت، مثلاً جوشکاری یا PLC" @bind="skill" /><button class="btn btn-primary" @onclick="Load">جستجو</button></div>
+@if (error.Length > 0) { <p class="notice">@error</p> }
+@if (items == null) { <p>در حال دریافت...</p> }
+else if (items.Count == 0) { <p>متخصصی یافت نشد.</p> }
+else
+{
+    <div class="cards two">
+        @foreach (var p in items)
+        {
+            <article class="card"><h3>@p.FullName</h3><span class="muted">@p.City</span><p>@p.Bio</p>
+                <div class="tags">@foreach (var s in p.Skills) { <span class="tag">@s.Name · @s.Level · @s.YearsExperience سال</span> }</div>
+            </article>
+        }
+    </div>
+}
+@code {
+    private List<SpecialistView>? items;
+    private string skill = "";
+    private string error = "";
+    protected override async Task OnInitializedAsync() => await Load();
+    private async Task Load()
+    {
+        try { error = ""; items = await Api.Get<List<SpecialistView>>("api/specialists?skill=" + Uri.EscapeDataString(skill)); }
+        catch (Exception ex) { error = ex.Message; items = new(); }
+    }
+}

@@ -1,0 +1,47 @@
+@page "/specialist-panel"
+<PageTitle>پنل متخصص</PageTitle>
+<h1>پروفایل متخصص</h1>
+<p class="muted">نمایش عمومی رزومه با انتخاب خود شما انجام می‌شود؛ اطلاعات ورود و ایمیل به صورت عمومی منتشر نمی‌شوند.</p>
+@if (message.Length > 0) { <p class="notice">@message</p> }
+@if (profile == null) { <p>برای تکمیل رزومه با حساب متخصص <a href="/login">وارد شوید</a>.</p> }
+else
+{
+    <div class="card form-section">
+        <div class="form-grid two-cols">
+            <label>نام و نام خانوادگی <input @bind="profile.FullName" /></label>
+            <label>شهر <select @bind="profile.City"><option>آبادان</option><option>خرمشهر</option><option>سایر</option></select></label>
+            <label class="full-width">درباره من <textarea @bind="profile.Bio" rows="4"></textarea></label>
+            <label class="checkbox-row full-width"><input type="checkbox" @bind="profile.IsPublic" /> نمایش عمومی رزومه من مجاز است</label>
+        </div>
+        <h2>مهارت‌ها</h2>
+        @foreach (var s in profile.Skills)
+        {
+            <div class="skill-input">
+                <input placeholder="نام تخصص" @bind="s.Name" />
+                <select @bind="s.Level"><option value="Beginner">مقدماتی</option><option value="Intermediate">متوسط</option><option value="Advanced">پیشرفته</option><option value="Expert">خبره</option></select>
+                <label>سال تجربه <input type="number" min="0" max="60" @bind="s.YearsExperience" /></label>
+                <button class="btn btn-light btn-small" @onclick="() => RemoveSkill(s)">حذف</button>
+            </div>
+        }
+        <button class="btn btn-light" @onclick="AddSkill">افزودن مهارت</button>
+        <button class="btn btn-primary" @onclick="Save">ذخیره رزومه</button>
+    </div>
+    <p><a href="/jobs">مشاهده فرصت‌های شغلی</a></p>
+}
+@code {
+    private SpecialistEdit? profile;
+    private string message = "";
+    protected override async Task OnInitializedAsync()
+    {
+        try { profile = await Api.Get<SpecialistEdit>("api/specialists/mine"); }
+        catch (Exception ex) { message = ex.Message; }
+    }
+    private void AddSkill() => profile?.Skills.Add(new SkillEdit());
+    private void RemoveSkill(SkillEdit s) => profile?.Skills.Remove(s);
+    private async Task Save()
+    {
+        if (profile == null) return;
+        try { message = await Api.Post("api/specialists/save", profile); }
+        catch (Exception ex) { message = ex.Message; }
+    }
+}

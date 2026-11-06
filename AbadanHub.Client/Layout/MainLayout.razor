@@ -1,0 +1,44 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Nav
+<header class="topbar">
+    <div class="container nav-wrap">
+        <a class="brand" href="/">◈ هم‌افزایی صنعت آبادان</a>
+        <nav class="nav-links" aria-label="منوی اصلی">
+            <NavLink href="/" Match="NavLinkMatch.All">خانه</NavLink>
+            <NavLink href="/companies">شرکت‌ها</NavLink>
+            <NavLink href="/specialists">متخصصان</NavLink>
+            <NavLink href="/jobs">فرصت‌های شغلی</NavLink>
+            <NavLink href="/issues">پیگیری مشکلات</NavLink>
+            <NavLink href="/dashboard">گزارش‌ها</NavLink>
+        </nav>
+        @if (user == null)
+        {
+            <a href="/login" class="btn btn-outline btn-small">ورود</a>
+        }
+        else
+        {
+            <div class="button-row"><span class="muted">@user.DisplayName</span><button class="btn btn-outline btn-small" @onclick="Logout">خروج</button></div>
+        }
+    </div>
+</header>
+<main class="container body-content">
+    @Body
+</main>
+<footer class="footer">
+    <div class="container">سامانه ارتباط صنایع و متخصصان آبادان و خرمشهر — نسخه اولیه توسعه</div>
+</footer>
+
+@code {
+    private UserInfo? user;
+    protected override async Task OnInitializedAsync()
+    {
+        try { user = await Api.Get<UserInfo>("api/auth/me"); }
+        catch { user = null; }
+    }
+    private async Task Logout()
+    {
+        try { await Api.Post("api/auth/logout"); }
+        catch { }
+        Nav.NavigateTo("/", forceLoad: true);
+    }
+}

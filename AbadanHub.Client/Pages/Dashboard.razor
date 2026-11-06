@@ -1,0 +1,30 @@
+@page "/dashboard"
+<PageTitle>داشبورد صنعتی</PageTitle>
+<h1>داشبورد آماری صنایع و متخصصان</h1>
+<p class="muted">گزارش‌های مدیریتی بر اساس دسترسی کاربر نمایش داده می‌شوند و مشکلات به نهادهای ارجاع‌شده محدودند.</p>
+@if (error.Length > 0) { <p class="notice">@error</p> }
+@if (report != null)
+{
+    <div class="stat-grid">
+        <div class="stat"><span>شرکت‌های تأییدشده</span><strong>@report.TotalCompanies</strong></div>
+        <div class="stat"><span>شرکت‌های دارای نشان شهرک</span><strong>@report.VerifiedTownshipCompanies</strong></div>
+        <div class="stat"><span>متخصصان</span><strong>@report.Specialists</strong></div>
+        <div class="stat"><span>فرصت‌های شغلی باز</span><strong>@report.OpenJobs</strong></div>
+        <div class="stat"><span>مشکلات باز / مجاز</span><strong>@report.OpenIssues</strong></div>
+    </div>
+    <div class="cards two sections">
+        <section class="card"><h2>شرکت‌ها به تفکیک حوزه فعالیت</h2><BarChart Values="@report.CompaniesBySector" /></section>
+        <section class="card"><h2>متخصصان بر اساس شهر</h2><BarChart Values="@report.SpecialistsByCity" /></section>
+        <section class="card"><h2>سطح مهارت متخصصان</h2><BarChart Values="@report.SkillsByLevel" /></section>
+        <section class="card"><h2>وضعیت مشکلات صنعتی</h2><BarChart Values="@report.IssuesByStatus" /></section>
+    </div>
+}
+@code {
+    private DashboardReport? report;
+    private string error = "";
+    protected override async Task OnInitializedAsync()
+    {
+        try { report = await Api.Get<DashboardReport>("api/reports/dashboard"); }
+        catch (Exception ex) { error = ex.Message; }
+    }
+}

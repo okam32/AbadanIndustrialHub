@@ -1,0 +1,70 @@
+@page "/admin"
+<PageTitle>تأیید اطلاعات شرکت‌ها</PageTitle>
+<h1>مدیریت تأیید اطلاعات</h1>
+<p class="muted">وضعیت عضویت شهرک صنعتی فقط توسط مدیر مجاز قابل تأیید است. شرکت‌های خارج از شهرک نیز امکان تأیید و فعالیت دارند.</p>
+@if (message.Length > 0) { <p class="notice">@message</p> }
+<h2>شرکت‌های در انتظار بررسی</h2>
+@if (companies == null) { <p>در حال بارگذاری...</p> }
+else if (companies.Count == 0) { <p>موردی در صف وجود ندارد.</p> }
+else
+{
+    <div class="cards two">
+        @foreach (var c in companies)
+        {
+            <div class="card">
+                <h3>@c.Name</h3><p>حوزه: @c.Sector</p>
+                @if (c.RequestedTownshipVerification) { <span class="tag">درخواست تأیید شهرک صنعتی</span> }
+                <div class="button-row">
+                    <a class="btn btn-light btn-small" href="@($"/admin/company/{c.Id}")">بررسی کامل / مدارک</a>
+                    <button class="btn btn-primary btn-small" @onclick="() => ApproveCompany(c.Id, false)">تأیید عادی</button>
+                    @if (c.RequestedTownshipVerification)
+                    {
+                        <button class="btn btn-light btn-small" @onclick="() => ApproveCompany(c.Id, true)">تأیید + نشان شهرک</button>
+                    }
+                    <button class="btn btn-danger btn-small" @onclick="() => RejectCompany(c.Id)">رد</button>
+                </div>
+            </div>
+        }
+    </div>
+}
+<h2>محصولات و خدمات در انتظار تأیید</h2>
+@if (offerings != null)
+{
+    <div class="cards two">
+        @foreach (var o in offerings)
+        {
+            <div class="card">
+                <h3>@o.Title</h3><p>شرکت: @o.CompanyName</p>
+                <div class="button-row">
+                    <a class="btn btn-light btn-small" href="@($"/admin/offering/{o.Id}")">مشاهده متن کامل</a>
+                    <button class="btn btn-primary btn-small" @onclick="() => ApproveOffering(o.Id)">تأیید</button>
+                    <button class="btn btn-danger btn-small" @onclick="() => RejectOffering(o.Id)">رد</button>
+                </div>
+            </div>
+        }
+    </div>
+}
+@code {
+    private List<PendingCompany>? companies;
+    private List<PendingOffering>? offerings;
+    private string message = "";
+    protected override async Task OnInitializedAsync() => await Load();
+    private async Task Load()
+    {
+        try
+        {
+            companies = await Api.Get<List<PendingCompany>>("api/admin/pending-companies");
+            offerings = await Api.Get<List<PendingOffering>>("api/admin/pending-offerings");
+        }
+        catch (Exception ex) { message = ex.Message; }
+    }
+    private async Task ApproveCompany(Guid id, bool verified) => await Run($"api/admin/companies/{id}/approve", new ApprovalDecision { VerifyTownship = verified });
+    private async Task RejectCompany(Guid id) => await Run($"api/admin/companies/{id}/reject", new ApprovalDecision { Reason = "اطلاعات نیازمند اصلاح است." });
+    private async Task ApproveOffering(Guid id) => await Run($"api/admin/offerings/{id}/approve", new { });
+    private async Task RejectOffering(Guid id) => await Run($"api/admin/offerings/{id}/reject", new ApprovalDecision { Reason = "اطلاعات نیازمند اصلاح است." });
+    private async Task Run(string url, object body)
+    {
+        try { message = await Api.Post(url, body); await Load(); }
+        catch (Exception e) { message = e.Message; }
+    }
+}

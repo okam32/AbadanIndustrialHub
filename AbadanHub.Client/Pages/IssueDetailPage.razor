@@ -1,0 +1,55 @@
+@page "/issue/{IssueId:guid}"
+<PageTitle>جزئیات مشکل</PageTitle>
+<h1>پرونده مشکل صنعتی</h1>
+@if (message.Length > 0) { <p class="notice">@message</p> }
+@if (detail != null)
+{
+    <div class="card">
+        <div class="title-row"><h2>@detail.Issue.Title</h2><span class="tag">@detail.Issue.Status</span></div>
+        <p>@detail.Issue.CompanyName · @detail.Issue.Category · @detail.Issue.Priority</p>
+        <p>@detail.Issue.Description</p>
+        <p>نهادها: @string.Join("، ", detail.Issue.Recipients)</p>
+    </div>
+    <h2>تاریخچه اقدامات</h2>
+    <div class="timeline">
+        @foreach (var h in detail.FollowUps)
+        {
+            <div class="timeline-item"><strong>@h.Actor</strong> · @h.Status <span class="muted">(@h.CreatedUtc.ToLocalTime().ToString("yyyy/MM/dd HH:mm"))</span><p>@h.Comment</p></div>
+        }
+    </div>
+    <div class="card form-section">
+        <h2>ثبت پیگیری جدید</h2>
+        <label>توضیحات <textarea @bind="edit.Comment" rows="4"></textarea></label>
+        <label>تغییر وضعیت (فقط مدیر یا نهاد مجاز)
+            <select @bind="selectedStatus">
+                <option value="">بدون تغییر وضعیت</option>
+                @foreach (var value in Enum.GetValues<IssueStatus>()) { <option value="@value.ToString()">@value</option> }
+            </select>
+        </label>
+        <button class="btn btn-primary" @onclick="Save">ثبت پیگیری</button>
+    </div>
+}
+@code {
+    [Parameter] public Guid IssueId { get; set; }
+    private IssueDetail? detail;
+    private FollowUpEdit edit = new();
+    private string selectedStatus = "";
+    private string message = "";
+    protected override async Task OnParametersSetAsync() => await Load();
+    private async Task Load()
+    {
+        try { detail = await Api.Get<IssueDetail>($"api/issues/{IssueId}"); }
+        catch (Exception ex) { message = ex.Message; }
+    }
+    private async Task Save()
+    {
+        try
+        {
+            edit.NewStatus = Enum.TryParse<IssueStatus>(selectedStatus, out var status) ? status : null;
+            message = await Api.Post($"api/issues/{IssueId}/follow-up", edit);
+            edit = new(); selectedStatus = "";
+            await Load();
+        }
+        catch (Exception ex) { message = ex.Message; }
+    }
+}

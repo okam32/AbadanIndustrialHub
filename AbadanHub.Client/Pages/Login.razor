@@ -1,0 +1,37 @@
+@page "/login"
+@inject NavigationManager Nav
+<PageTitle>ورود به سامانه</PageTitle>
+<div class="form-page">
+    <h1>ورود به سامانه</h1>
+    <p class="muted">با حساب شرکت، متخصص یا کاربر نهاد پشتیبان وارد شوید.</p>
+    <div class="card">
+        <div class="form-grid">
+            <label>ایمیل <input type="email" @bind="model.Email" /></label>
+            <label>رمز عبور <input type="password" @bind="model.Password" /></label>
+        </div>
+        <button class="btn btn-primary" disabled="@busy" @onclick="SignIn">ورود</button>
+        @if (!string.IsNullOrWhiteSpace(message)) { <p class="notice">@message</p> }
+        <div class="small-links"><a href="/register-company">ثبت شرکت</a> · <a href="/register-specialist">ثبت متخصص</a></div>
+    </div>
+</div>
+@code {
+    private AuthInput model = new();
+    private bool busy;
+    private string message = "";
+    private async Task SignIn()
+    {
+        busy = true;
+        try
+        {
+            await Api.Post("api/auth/login", model);
+            var user = await Api.Get<UserInfo>("api/auth/me");
+            if (user?.Roles.Contains("Company") == true) Nav.NavigateTo("/company-panel", forceLoad: true);
+            else if (user?.Roles.Contains("Specialist") == true) Nav.NavigateTo("/specialist-panel", forceLoad: true);
+            else if (user?.Roles.Contains("SuperAdmin") == true || user?.Roles.Contains("TownManager") == true)
+                Nav.NavigateTo("/admin", forceLoad: true);
+            else Nav.NavigateTo("/issues", forceLoad: true);
+        }
+        catch (Exception ex) { message = ex.Message; }
+        finally { busy = false; }
+    }
+}

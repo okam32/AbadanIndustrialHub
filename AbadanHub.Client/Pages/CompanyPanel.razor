@@ -1,0 +1,158 @@
+@page "/company-panel"
+@using Microsoft.AspNetCore.Components.Forms
+<PageTitle>پنل شرکت</PageTitle>
+<h1>پنل مدیریت شرکت</h1>
+<p class="muted">اطلاعات شرکت و خدمات برای انتشار نیازمند تأیید مدیریت است. ارسال فرصت شغلی پس از تأیید اولیه شرکت امکان‌پذیر می‌شود.</p>
+@if (notice.Length > 0) { <p class="notice">@notice</p> }
+@if (mine == null)
+{
+    <p>برای دسترسی، با حساب شرکت وارد شوید. <a href="/login">ورود</a></p>
+}
+else
+{
+    <section class="card form-section">
+        <div class="title-row"><h2>پروفایل شرکت</h2><span class="tag">وضعیت: @mine.Status</span></div>
+        @if (!string.IsNullOrEmpty(mine.ReviewNote)) { <p class="notice">نظر بررسی: @mine.ReviewNote</p> }
+        @if (mine.IsTownshipVerified) { <span class="tag verified">✓ عضویت در شهرک صنعتی تأیید شده</span> }
+        <div class="form-grid two-cols">
+            <label>نام شرکت <input @bind="edit.Name" /></label>
+            <label>حوزه فعالیت <input @bind="edit.Sector" /></label>
+            <label>شهر <input @bind="edit.City" /></label>
+            <label>شماره تماس <input @bind="edit.Phone" /></label>
+            <label>شناسه ملی <input @bind="edit.NationalIdentifier" /></label>
+            <label>آدرس <input @bind="edit.Address" /></label>
+            <label class="full-width">توضیحات <textarea @bind="edit.Description" rows="3"></textarea></label>
+            <label class="checkbox-row full-width"><input type="checkbox" @bind="edit.RequestsTownshipVerification" /> درخواست بررسی عضویت در شهرک صنعتی آبادان</label>
+        </div>
+        <button class="btn btn-primary" @onclick="SaveCompany">ذخیره و ارسال برای تأیید</button>
+    </section>
+    <div class="cards two sections">
+        <section class="card form-section">
+            <h2>ثبت محصول یا خدمت</h2>
+            <div class="form-grid">
+                <label>نوع <select @bind="offering.Kind"><option value="Service">خدمت</option><option value="Product">محصول</option></select></label>
+                <label>عنوان <input @bind="offering.Title" /></label>
+                <label>شرح <textarea @bind="offering.Description" rows="4"></textarea></label>
+            </div>
+            <button class="btn btn-primary" @onclick="SaveOffering">ارسال برای تأیید</button>
+        </section>
+        <section class="card form-section">
+            <h2>ثبت فرصت شغلی</h2>
+            <div class="form-grid">
+                <label>عنوان شغل <input @bind="job.Title" /></label>
+                <label>مهارت‌های موردنیاز <input @bind="job.RequiredSkills" /></label>
+                <label>شرح موقعیت <textarea @bind="job.Description" rows="4"></textarea></label>
+            </div>
+            <button class="btn btn-primary" @onclick="SaveJob">انتشار فرصت شغلی</button>
+        </section>
+        <section class="card form-section">
+            <h2>ثبت فرایند کاری</h2>
+            <div class="form-grid">
+                <label>نام فرایند <input @bind="process.Title" /></label>
+                <label>شرح فرایند <textarea @bind="process.Description"></textarea></label>
+                <label>مراحل فرایند (هر خط یک مرحله) <textarea @bind="stepsText" rows="4"></textarea></label>
+            </div>
+            <button class="btn btn-primary" @onclick="SaveProcess">ذخیره فرایند</button>
+            @if (processes.Count > 0) { <p class="muted">فرایندهای ثبت‌شده: @string.Join("، ", processes.Select(p => p.Title))</p> }
+        </section>
+        <section class="card form-section">
+            <h2>گزارش مشکل صنعتی</h2>
+            <div class="form-grid">
+                <label>عنوان مشکل <input @bind="issue.Title" /></label>
+                <label>دسته‌بندی <input @bind="issue.Category" placeholder="مثلاً تأمین مواد اولیه" /></label>
+                <label>اولویت <select @bind="issue.Priority"><option value="Normal">عادی</option><option value="High">بالا</option><option value="Critical">بحرانی</option><option value="Low">پایین</option></select></label>
+                <label>فرایند مرتبط (اختیاری) <select @bind="issue.WorkProcessId"><option value="">بدون فرایند</option>@foreach (var p in processes) { <option value="@p.Id">@p.Title</option> }</select></label>
+                <label>توضیح مشکل <textarea @bind="issue.Description" rows="4"></textarea></label>
+                <fieldset class="recipients"><legend>نهادهای دریافت‌کننده</legend>
+                    <label class="checkbox-row"><input type="checkbox" @bind="chamber" /> اتاق بازرگانی</label>
+                    <label class="checkbox-row"><input type="checkbox" @bind="refinery" /> پالایشگاه آبادان</label>
+                    <label class="checkbox-row"><input type="checkbox" @bind="basij" /> بسیج مهندسین</label>
+                </fieldset>
+            </div>
+            <button class="btn btn-primary" @onclick="SaveIssue">ثبت گزارش مشکل</button>
+        </section>
+    </div>
+    <section class="card form-section">
+        <h2>بارگذاری مدارک شرکت</h2>
+        <p class="muted">فایل PDF یا تصویر PNG/JPG، حداکثر ۵ مگابایت. مدارک به‌صورت خصوصی نگهداری می‌شوند.</p>
+        <InputFile OnChange="UploadFile" accept=".pdf,.png,.jpg,.jpeg" />
+        @if (uploads.Count > 0)
+        {
+            <ul>@foreach (var f in uploads) { <li>@f.OriginalName — <a href="@($"/api/files/{f.Id}")" target="_blank">دریافت خصوصی</a></li> }</ul>
+        }
+    </section>
+    <p><a href="/issues">مشاهده و پیگیری مشکلات ثبت‌شده</a></p>
+}
+@code {
+    private CompanyMine? mine;
+    private CompanyEdit edit = new();
+    private OfferingEdit offering = new();
+    private JobEdit job = new();
+    private ProcessEdit process = new();
+    private IssueEdit issue = new();
+    private List<ProcessView> processes = new();
+    private string stepsText = "";
+    private bool chamber, refinery, basij;
+    private string notice = "";
+    private List<MyFile> uploads = new();
+    private sealed class MyFile { public Guid Id { get; set; } public string OriginalName { get; set; } = ""; }
+
+    private async Task UploadFile(InputFileChangeEventArgs args)
+    {
+        try
+        {
+            notice = await Api.Upload(args.File);
+            uploads = await Api.Get<List<MyFile>>("api/files/mine") ?? new();
+        }
+        catch (Exception ex) { notice = ex.Message; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            mine = await Api.Get<CompanyMine>("api/companies/mine");
+            if (mine != null) edit = mine.Draft;
+            processes = await Api.Get<List<ProcessView>>("api/processes/mine") ?? new();
+            uploads = await Api.Get<List<MyFile>>("api/files/mine") ?? new();
+        }
+        catch (Exception ex) { notice = ex.Message; }
+    }
+    private async Task SaveCompany() => await Try(async () =>
+    {
+        var msg = await Api.Post("api/companies/save", edit);
+        mine = await Api.Get<CompanyMine>("api/companies/mine");
+        return msg;
+    });
+    private async Task SaveOffering() => await Try(async () =>
+    {
+        var msg = await Api.Post("api/offerings/save", offering);
+        offering = new(); return msg;
+    });
+    private async Task SaveJob() => await Try(async () =>
+    {
+        var msg = await Api.Post("api/jobs/create", job);
+        job = new(); return msg;
+    });
+    private async Task SaveProcess() => await Try(async () =>
+    {
+        process.Steps = stepsText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        var msg = await Api.Post("api/processes/create", process);
+        processes = await Api.Get<List<ProcessView>>("api/processes/mine") ?? new();
+        process = new(); stepsText = ""; return msg;
+    });
+    private async Task SaveIssue() => await Try(async () =>
+    {
+        issue.Recipients = new();
+        if (chamber) issue.Recipients.Add(OrganizationKind.ChamberOfCommerce);
+        if (refinery) issue.Recipients.Add(OrganizationKind.AbadanRefinery);
+        if (basij) issue.Recipients.Add(OrganizationKind.EngineersBasij);
+        var msg = await Api.Post("api/issues/create", issue);
+        issue = new(); chamber = refinery = basij = false; return msg;
+    });
+    private async Task Try(Func<Task<string>> action)
+    {
+        try { notice = await action(); }
+        catch (Exception e) { notice = e.Message; }
+    }
+}

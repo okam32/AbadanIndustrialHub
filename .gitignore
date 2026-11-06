@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+.vs/
+*.user
+**/private_uploads/
+**/appsettings.Production.json
+*.pfx
+.env
